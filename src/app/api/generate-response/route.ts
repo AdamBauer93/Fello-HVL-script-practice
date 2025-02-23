@@ -7,42 +7,57 @@ const openai = new OpenAI({
 
 export async function POST(request: Request) {
   try {
-    const { prompt, personality, stage } = await request.json();
+    const { prompt, personality, stage, conversationHistory } = await request.json();
 
-    const systemPrompt = `You are strictly playing the role of a HOMEOWNER who recently checked their home's value online. 
-    A real estate agent is calling you to follow up about this.
+    // Analyze previous responses to maintain consistency
+    let valueOpinion = 'neutral';
+    let mentionedUpgrades = false;
+    let mentionedConcerns = [];
 
-    Your role: You are the HOMEOWNER, not the agent. You recently checked your home's value online because you were curious.
-    
+    // Parse previous responses for consistency
+    conversationHistory.forEach(message => {
+      if (message.startsWith('Homeowner:')) {
+        const response = message.toLowerCase();
+        if (response.includes('high') || response.includes('too much')) valueOpinion = 'high';
+        if (response.includes('low') || response.includes('worth more')) valueOpinion = 'low';
+        if (response.includes('upgrade') || response.includes('renovation')) mentionedUpgrades = true;
+        // Track other mentioned concerns for consistency
+        if (response.includes('market')) mentionedConcerns.push('market conditions');
+        if (response.includes('interest rate')) mentionedConcerns.push('interest rates');
+        if (response.includes('timeline')) mentionedConcerns.push('timeline');
+      }
+    });
+
+    const systemPrompt = `You are a homeowner who recently checked their home's value online. 
+    A real estate agent is calling you to follow up.
+
     Your personality type is: ${personality}
 
-    CRITICAL INSTRUCTION: YOU ARE THE HOMEOWNER RECEIVING THE CALL, NOT THE AGENT MAKING THE CALL.
+    CRITICAL RULES:
+    - You are the HOMEOWNER, not the agent
+    - Maintain logical consistency in your responses
+    - If you've said the value was ${valueOpinion !== 'neutral' ? valueOpinion : 'high or low'}, stick with that perspective
+    ${valueOpinion === 'high' ? '- Do NOT mention upgrades or improvements that would suggest the value should be higher' : ''}
+    ${valueOpinion === 'low' ? '- You can mention upgrades or improvements to justify why you think the value should be higher' : ''}
+    ${mentionedUpgrades ? '- You previously mentioned home upgrades, you can reference these again' : ''}
+    - Keep your concerns and motivations consistent
+    - Previously mentioned concerns: ${mentionedConcerns.join(', ')}
 
-    If the agent asks about your thoughts on the home value:
-    - Express your opinion about whether it seemed high, low, or about right
-    - Mention any recent updates you've made to the home
-    - Show your personality type in your response
+    PERSONALITY TRAITS:
+    Eager: Quick to share information, optimistic but may have concerns about finding next home
+    Hesitant: Reserved in responses, needs more information, worried about market conditions
+    Analytical: Focuses on data, wants to understand the methodology, compares to other homes
+    Busy: Direct responses, values efficiency, may be motivated by timeline
+    Skeptical: Questions accuracy, needs proof of value, wants to understand the process
 
-    If the agent asks about your plans:
-    - Be realistic about your timeline
-    - Express any concerns you might have
-    - Stay true to your personality type
+    RESPONSE FRAMEWORK:
+    1. Stay in character as a ${personality} personality type
+    2. Maintain consistency with your ${valueOpinion !== 'neutral' ? `opinion that the value is ${valueOpinion}` : 'initial reaction to the value'}
+    3. Reference previous concerns: ${mentionedConcerns.join(', ')}
+    4. Respond naturally to the agent's question
 
-    NEVER:
-    - Ask how you can help the agent
-    - Try to sell anything
-    - Offer to show homes
-    - Act like a real estate professional
-
-    ALWAYS:
-    - Respond as the homeowner who received the valuation
-    - Stay in character as someone who just checked their home's value
-    - Express homeowner perspectives and concerns
-
-    Example responses a homeowner might give:
-    "Yeah, I did check the value. Was kind of surprised by what I saw..."
-    "I was just curious really, not sure we're ready to sell yet..."
-    "We've done some updates recently, so I wanted to see if they affected the value..."`;
+    Previous conversation context:
+    ${conversationHistory.map(msg => msg).join('\n')}`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
@@ -51,6 +66,10 @@ export async function POST(request: Request) {
           role: "system",
           content: systemPrompt
         },
+        ...conversationHistory.map(msg => ({
+          role: msg.startsWith('Agent:') ? 'user' : 'assistant',
+          content: msg.split(': ')[1]
+        })),
         {
           role: "user",
           content: prompt

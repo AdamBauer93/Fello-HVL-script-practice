@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, RefreshCw } from 'lucide-react';
+import { Mic, Square, RefreshCw, Settings } from 'lucide-react';
 
 const VoicePracticeApp = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -99,10 +99,11 @@ const VoicePracticeApp = () => {
       console.log('Transcription result:', transcriptionData);
 
       // Add agent's message to conversation
-      setConversationHistory(prev => [...prev, `Agent: ${transcriptionData.text}`]);
+      const updatedHistory = [...conversationHistory, `Agent: ${transcriptionData.text}`];
+      setConversationHistory(updatedHistory);
 
       console.log('Generating AI response...');
-      // Generate AI response
+      // Generate AI response with conversation history
       const responseData = await fetch('/api/generate-response', {
         method: 'POST',
         headers: {
@@ -111,7 +112,8 @@ const VoicePracticeApp = () => {
         body: JSON.stringify({
           prompt: transcriptionData.text,
           personality: scenario.personality.type,
-          stage: 'conversation'
+          stage: 'conversation',
+          conversationHistory: updatedHistory
         })
       });
 
@@ -178,55 +180,101 @@ const VoicePracticeApp = () => {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Real Estate Script Practice</h1>
-      
-      <div className="flex gap-4 mb-6">
-        <button
-          onClick={toggleRecording}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-            isRecording 
-              ? 'bg-red-500 hover:bg-red-600 text-white' 
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
-          }`}
-        >
-          {isRecording ? (
-            <>
-              <Square className="w-5 h-5" />
-              Stop Recording
-            </>
-          ) : (
-            <>
-              <Mic className="w-5 h-5" />
-              Start Recording
-            </>
-          )}
-        </button>
-        
-        <button
-          onClick={generateScenario}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-500 hover:bg-gray-600 text-white"
-        >
-          <RefreshCw className="w-5 h-5" />
-          New Scenario
-        </button>
-      </div>
-
-      <div className="bg-white rounded-lg shadow p-4">
-        <h2 className="text-xl font-semibold mb-4">Conversation History</h2>
-        <div className="space-y-4">
-          {conversationHistory.map((message, index) => (
-            <div 
-              key={index}
-              className={`p-3 rounded-lg ${
-                message.startsWith('Agent:')
-                  ? 'bg-blue-100 ml-8' 
-                  : 'bg-gray-200 mr-8'
-              }`}
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header Section */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold text-gray-800">Real Estate Script Practice</h1>
+            <button
+              onClick={generateScenario}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors duration-200"
             >
-              {message}
+              <RefreshCw className="w-5 h-5" />
+              New Scenario
+            </button>
+          </div>
+        </div>
+
+        {/* Recording Controls */}
+        <div className="flex justify-center mb-8">
+          <button
+            onClick={toggleRecording}
+            className={`flex items-center gap-2 px-8 py-4 rounded-full shadow-lg transition-all duration-200 transform hover:scale-105 ${
+              isRecording 
+                ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
+          >
+            {isRecording ? (
+              <>
+                <Square className="w-6 h-6" />
+                <span className="text-lg font-semibold">Stop Recording</span>
+              </>
+            ) : (
+              <>
+                <Mic className="w-6 h-6" />
+                <span className="text-lg font-semibold">Start Recording</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Conversation History */}
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold mb-6 text-gray-800">Conversation History</h2>
+          <div className="space-y-4">
+            {conversationHistory.map((message, index) => (
+              <div 
+                key={index}
+                className={`p-4 rounded-lg transition-all duration-200 ${
+                  message.startsWith('Agent:')
+                    ? 'bg-blue-50 ml-12 hover:bg-blue-100' 
+                    : 'bg-gray-50 mr-12 hover:bg-gray-100'
+                }`}
+              >
+                <div className="font-medium mb-1 text-sm text-gray-600">
+                  {message.startsWith('Agent:') ? 'You' : 'Homeowner'}
+                </div>
+                <div className="text-gray-800">
+                  {message.split(': ')[1]}
+                </div>
+              </div>
+            ))}
+            {conversationHistory.length === 0 && (
+              <div className="text-center text-gray-500 py-8">
+                Start recording to begin the conversation
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Admin View */}
+        <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">Current Scenario</h3>
+            <Settings className="w-5 h-5 text-gray-500" />
+          </div>
+          {scenario && (
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <span className="font-medium text-gray-700">Personality:</span>
+                <p className="text-gray-600">{scenario.personality.type} - {scenario.personality.description}</p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <span className="font-medium text-gray-700">Property:</span>
+                <p className="text-gray-600">{scenario.bedrooms}bed/{scenario.bathrooms}bath {scenario.homeType}</p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <span className="font-medium text-gray-700">Purchase Year:</span>
+                <p className="text-gray-600">{scenario.purchaseYear}</p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <span className="font-medium text-gray-700">Timeline:</span>
+                <p className="text-gray-600">{scenario.timeline}</p>
+              </div>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>
@@ -234,3 +282,4 @@ const VoicePracticeApp = () => {
 };
 
 export default VoicePracticeApp;
+
