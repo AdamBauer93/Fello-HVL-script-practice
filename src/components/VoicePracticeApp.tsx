@@ -282,4 +282,3 @@ const VoicePracticeApp = () => {
 };
 
 export default VoicePracticeApp;
-
