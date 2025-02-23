@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, RefreshCw, Settings } from 'lucide-react';
+import { Mic, Square, RefreshCw, Eye, EyeOff } from 'lucide-react';
 
 const VoicePracticeApp = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [scenario, setScenario] = useState<any>(null);
   const [conversationHistory, setConversationHistory] = useState<string[]>([]);
+  const [showAdmin, setShowAdmin] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
@@ -73,7 +74,6 @@ const VoicePracticeApp = () => {
     try {
       console.log('Starting audio processing...');
       
-      // First, transcribe the audio
       const formData = new FormData();
       formData.append('file', recordedBlob);
       
@@ -103,7 +103,6 @@ const VoicePracticeApp = () => {
       setConversationHistory(updatedHistory);
 
       console.log('Generating AI response...');
-      // Generate AI response with conversation history
       const responseData = await fetch('/api/generate-response', {
         method: 'POST',
         headers: {
@@ -182,17 +181,26 @@ const VoicePracticeApp = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
       <div className="max-w-4xl mx-auto">
-        {/* Header Section */}
+        {/* Header with Admin Toggle */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-gray-800">Real Estate Script Practice</h1>
-            <button
-              onClick={generateScenario}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors duration-200"
-            >
-              <RefreshCw className="w-5 h-5" />
-              New Scenario
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowAdmin(!showAdmin)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors duration-200"
+              >
+                {showAdmin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showAdmin ? 'Hide Admin' : 'Show Admin'}
+              </button>
+              <button
+                onClick={generateScenario}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors duration-200"
+              >
+                <RefreshCw className="w-5 h-5" />
+                New Scenario
+              </button>
+            </div>
           </div>
         </div>
 
@@ -243,19 +251,18 @@ const VoicePracticeApp = () => {
             ))}
             {conversationHistory.length === 0 && (
               <div className="text-center text-gray-500 py-8">
-                Start recording to begin the conversation
+                Start recording to begin your call
               </div>
             )}
           </div>
         </div>
 
-        {/* Admin View */}
-        <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Current Scenario</h3>
-            <Settings className="w-5 h-5 text-gray-500" />
-          </div>
-          {scenario && (
+        {/* Admin View - Hidden by Default */}
+        {showAdmin && scenario && (
+          <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Scenario Details (Admin View)</h3>
+            </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="p-3 bg-gray-50 rounded-lg">
                 <span className="font-medium text-gray-700">Personality:</span>
@@ -274,8 +281,8 @@ const VoicePracticeApp = () => {
                 <p className="text-gray-600">{scenario.timeline}</p>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
