@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { Mic, Square, RefreshCw } from 'lucide-react';
 
 const VoicePracticeApp = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -178,29 +178,27 @@ const VoicePracticeApp = () => {
     }
   };
 
+  // Function to format message for display
+  const formatMessageForDisplay = (message: string) => {
+    const [role, content] = message.split(': ');
+    return { speaker: role === 'Agent' ? 'You' : 'Homeowner', text: content };
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 p-6">
       <div className="max-w-4xl mx-auto">
-        {/* Header with Admin Toggle */}
+        {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-800">Real Estate Script Practice</h1>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowAdmin(!showAdmin)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors duration-200"
-              >
-                {showAdmin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                {showAdmin ? 'Hide Admin' : 'Show Admin'}
-              </button>
-              <button
-                onClick={generateScenario}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors duration-200"
-              >
-                <RefreshCw className="w-5 h-5" />
-                New Scenario
-              </button>
-            </div>
+          <h1 className="text-3xl font-bold text-blue-800 mb-3">Real Estate Voice Practice</h1>
+          <p className="text-gray-600">Practice your real estate scripts with AI-simulated homeowner responses</p>
+          <div className="mt-4 flex justify-end">
+            <button 
+              onClick={generateScenario}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+            >
+              <RefreshCw size={16} />
+              <span>New Conversation</span>
+            </button>
           </div>
         </div>
 
@@ -211,7 +209,7 @@ const VoicePracticeApp = () => {
             className={`flex items-center gap-2 px-8 py-4 rounded-full shadow-lg transition-all duration-200 transform hover:scale-105 ${
               isRecording 
                 ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
             }`}
           >
             {isRecording ? (
@@ -229,26 +227,26 @@ const VoicePracticeApp = () => {
         </div>
 
         {/* Conversation History */}
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-semibold mb-6 text-gray-800">Conversation History</h2>
-          <div className="space-y-4">
-            {conversationHistory.map((message, index) => (
-              <div 
-                key={index}
-                className={`p-4 rounded-lg transition-all duration-200 ${
-                  message.startsWith('Agent:')
-                    ? 'bg-blue-50 ml-12 hover:bg-blue-100' 
-                    : 'bg-gray-50 mr-12 hover:bg-gray-100'
-                }`}
-              >
-                <div className="font-medium mb-1 text-sm text-gray-600">
-                  {message.startsWith('Agent:') ? 'You' : 'Homeowner'}
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
+          <div className="bg-blue-700 text-white p-3">
+            <h2 className="font-semibold">Practice Conversation</h2>
+          </div>
+          <div className="p-4 max-h-96 overflow-y-auto space-y-4">
+            {conversationHistory.map((message, index) => {
+              const { speaker, text } = formatMessageForDisplay(message);
+              return (
+                <div key={index} className={`flex ${speaker === 'You' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-3/4 rounded-lg p-3 ${
+                    speaker === 'You' 
+                      ? 'bg-blue-600 text-white rounded-br-none' 
+                      : 'bg-gray-100 text-gray-800 rounded-bl-none'
+                  }`}>
+                    <p className="text-xs font-bold mb-1">{speaker}</p>
+                    <p>{text}</p>
+                  </div>
                 </div>
-                <div className="text-gray-800">
-                  {message.split(': ')[1]}
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {conversationHistory.length === 0 && (
               <div className="text-center text-gray-500 py-8">
                 Start recording to begin your call
@@ -262,6 +260,12 @@ const VoicePracticeApp = () => {
           <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-800">Scenario Details (Admin View)</h3>
+              <button 
+                onClick={() => setShowAdmin(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                Hide
+              </button>
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="p-3 bg-gray-50 rounded-lg">
@@ -283,6 +287,16 @@ const VoicePracticeApp = () => {
             </div>
           </div>
         )}
+        
+        {/* Admin Toggle Button */}
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => setShowAdmin(!showAdmin)}
+            className="text-blue-600 hover:text-blue-800 text-sm"
+          >
+            {showAdmin ? 'Hide Admin Panel' : 'Show Admin Panel'}
+          </button>
+        </div>
       </div>
     </div>
   );
